@@ -1,6 +1,7 @@
 #include "StatisticsManager.h"
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 
 StatisticsManager::StatisticsManager()
 {
@@ -9,35 +10,41 @@ StatisticsManager::StatisticsManager()
 
 void StatisticsManager::addPitchMeasurement(float frequency, float amplitude)
 {
-    juce::uint32 currentTime = juce::Time::getHighResolutionTicks();
-    
-    // Create measurement
-    PitchMeasurement measurement(frequency, amplitude, currentTime);
-    
-    // Add to recent measurements
-    recentMeasurements.push_back(measurement);
-    
-    // Limit history size
-    if (recentMeasurements.size() > MAX_HISTORY_SIZE)
-        recentMeasurements.pop_front();
-    
-    // Add to pitch history
-    pitchHistory.push_back(frequency);
-    if (pitchHistory.size() > MAX_HISTORY_SIZE)
-        pitchHistory.erase(pitchHistory.begin());
-    
-    // Update current values
+    totalDetections++;
     currentPitch = frequency;
     currentAmplitude = amplitude;
+
+    juce::int64 currentTime = juce::Time::getHighResolutionTicks();
     
-    // Update counters
-    totalDetections++;
     if (isValidFrequency(frequency))
+    {
         validDetections++;
+        
+        // Add to recent measurements for stability/confidence/response time calculations
+        recentMeasurements.emplace_back(frequency, amplitude, currentTime);
+        if (recentMeasurements.size() > STABILITY_WINDOW)
+        {
+            recentMeasurements.pop_front();
+        }
+    }
+    else
+    {
+        // Add a "zero" frequency to indicate no valid pitch
+        recentMeasurements.emplace_back(0.0f, amplitude, currentTime);
+        if (recentMeasurements.size() > STABILITY_WINDOW)
+        {
+            recentMeasurements.pop_front();
+        }
+    }
+
+    // Add to pitch history for long-term average/plotting
+    pitchHistory.push_back(frequency);
+    if (pitchHistory.size() > MAX_HISTORY_SIZE)
+    {
+        pitchHistory.erase(pitchHistory.begin());
+    }
     
-    // Update statistics
     updateStatistics();
-    
     lastTimestamp = currentTime;
 }
 
@@ -148,20 +155,31 @@ float StatisticsManager::calculateDetectionConfidence() const
 float StatisticsManager::calculateResponseTime() const
 {
     if (recentMeasurements.size() < 2)
-        return 0.0f;
-    
-    // Calculate average time between detections
-    float totalTime = 0.0f;
-    int count = 0;
-    
-    for (size_t i = 1; i < recentMeasurements.size(); ++i)
     {
-        juce::uint32 timeDiff = recentMeasurements[i].timestamp - recentMeasurements[i-1].timestamp;
-        totalTime += static_cast<float>(timeDiff) / juce::Time::getHighResolutionTicksPerSecond();
-        count++;
+        return 0.0f;
     }
     
-    return (count > 0) ? totalTime / count : 0.0f;
+    juce::int64 timeDiffSum = 0;
+    int count = 0;
+
+    for (size_t i = 1; i < recentMeasurements.size(); ++i)
+    {
+        // Only measure time between consecutive valid detections
+        if (isValidFrequency(recentMeasurements[i].frequency) && isValidFrequency(recentMeasurements[i - 1].frequency))
+        {
+            juce::int64 timeDiff = recentMeasurements[i].timestamp - recentMeasurements[i - 1].timestamp;
+            timeDiffSum += timeDiff;
+            count++;
+        }
+    }
+    
+    if (count == 0)
+    {
+        return 0.0f;
+    }
+    
+    double averageTimeDiffTicks = static_cast<double>(timeDiffSum) / count;
+    return static_cast<float>(averageTimeDiffTicks * 1000.0 / juce::Time::getHighResolutionTicksPerSecond());
 }
 
 juce::String StatisticsManager::frequencyToNote(float frequency) const

@@ -6,10 +6,10 @@ YinPitchDetector::YinPitchDetector()
 {
 }
 
-void YinPitchDetector::prepare(double sampleRate, int bufferSize)
+void YinPitchDetector::prepare(double newSampleRate, int newBufferSize)
 {
-    this->sampleRate = sampleRate;
-    this->bufferSize = bufferSize;
+    this->sampleRate = newSampleRate;
+    this->bufferSize = newBufferSize;
     
     // Resize buffers
     yinBuffer.resize(bufferSize / 2);
@@ -48,7 +48,7 @@ float YinPitchDetector::detectPitch(const juce::AudioBuffer<float>& buffer)
     float interpolatedIndex = parabolicInterpolation(minIndex);
     
     // Step 5: Convert to frequency
-    float frequency = sampleRate / interpolatedIndex;
+    float frequency = static_cast<float>(sampleRate) / interpolatedIndex;
     
     // Step 6: Check if frequency is in valid range for bass guitar
     if (frequency < MIN_FREQUENCY || frequency > MAX_FREQUENCY)
@@ -64,9 +64,9 @@ float YinPitchDetector::detectPitch(const juce::AudioBuffer<float>& buffer)
     return frequency;
 }
 
-void YinPitchDetector::computeDifferenceFunction(const float* buffer, int bufferSize)
+void YinPitchDetector::computeDifferenceFunction(const float* buffer, int inputBufferSize)
 {
-    int halfBufferSize = bufferSize / 2;
+    int halfBufferSize = inputBufferSize / 2;
     
     for (int t = 0; t < halfBufferSize; ++t)
     {
@@ -82,7 +82,7 @@ void YinPitchDetector::computeDifferenceFunction(const float* buffer, int buffer
 
 void YinPitchDetector::computeCumulativeMeanNormalizedDifference()
 {
-    int halfBufferSize = cumulativeMeanNormalizedDifference.size();
+    int halfBufferSize = static_cast<int>(cumulativeMeanNormalizedDifference.size());
     
     // First value
     cumulativeMeanNormalizedDifference[0] = 1.0f;
@@ -99,7 +99,7 @@ void YinPitchDetector::computeCumulativeMeanNormalizedDifference()
 
 int YinPitchDetector::findMinimumIndex() const
 {
-    int halfBufferSize = cumulativeMeanNormalizedDifference.size();
+    int halfBufferSize = static_cast<int>(cumulativeMeanNormalizedDifference.size());
     int minIndex = -1;
     float minValue = threshold;
     

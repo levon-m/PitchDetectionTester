@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_core/juce_core.h>
 #include <vector>
 #include <deque>
 
@@ -8,9 +8,9 @@ struct PitchMeasurement
 {
     float frequency;
     float amplitude;
-    juce::uint32 timestamp;
+    juce::int64 timestamp;
     
-    PitchMeasurement(float freq, float amp, juce::uint32 time)
+    PitchMeasurement(float freq, float amp, juce::int64 time)
         : frequency(freq), amplitude(amp), timestamp(time) {}
 };
 
@@ -49,7 +49,7 @@ private:
     // Current measurements
     float currentPitch = 0.0f;
     float currentAmplitude = 0.0f;
-    juce::uint32 lastTimestamp = 0;
+    juce::int64 lastTimestamp = 0;
     
     // Statistics
     float averagePitch = 0.0f;

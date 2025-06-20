@@ -70,9 +70,9 @@ void PitchDetectionTesterAudioProcessor::changeProgramName(int index, const juce
     juce::ignoreUnused(index, newName);
 }
 
-void PitchDetectionTesterAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void PitchDetectionTesterAudioProcessor::prepareToPlay(double newSampleRate, int samplesPerBlock)
 {
-    this->sampleRate = sampleRate;
+    this->sampleRate = newSampleRate;
     this->bufferSize = samplesPerBlock;
     
     // Prepare analysis buffer
@@ -81,9 +81,9 @@ void PitchDetectionTesterAudioProcessor::prepareToPlay(double sampleRate, int sa
     analysisBufferIndex = 0;
     
     // Prepare pitch detectors
-    if (yinDetector) yinDetector->prepare(sampleRate, ANALYSIS_BUFFER_SIZE);
-    if (fftDetector) fftDetector->prepare(sampleRate, ANALYSIS_BUFFER_SIZE);
-    if (currentPitchDetector) currentPitchDetector->prepare(sampleRate, ANALYSIS_BUFFER_SIZE);
+    if (yinDetector) yinDetector->prepare(newSampleRate, ANALYSIS_BUFFER_SIZE);
+    if (fftDetector) fftDetector->prepare(newSampleRate, ANALYSIS_BUFFER_SIZE);
+    if (currentPitchDetector) currentPitchDetector->prepare(newSampleRate, ANALYSIS_BUFFER_SIZE);
     
     // Reset statistics
     statisticsManager.reset();

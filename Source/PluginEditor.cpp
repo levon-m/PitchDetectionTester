@@ -59,6 +59,14 @@ void PitchDetectionTesterAudioProcessorEditor::resized()
         statisticsDisplay->setBounds(bounds);
 }
 
+void PitchDetectionTesterAudioProcessorEditor::comboBoxChanged(juce::ComboBox* comboBox)
+{
+    if (comboBox == &algorithmSelector)
+    {
+        algorithmChanged();
+    }
+}
+
 void PitchDetectionTesterAudioProcessorEditor::setupUI()
 {
     // Algorithm label

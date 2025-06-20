@@ -2,14 +2,19 @@
 #include <cmath>
 #include <algorithm>
 
+// Define M_PI if not already defined (Windows doesn't define it by default)
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 FFTPitchDetector::FFTPitchDetector()
 {
 }
 
-void FFTPitchDetector::prepare(double sampleRate, int bufferSize)
+void FFTPitchDetector::prepare(double newSampleRate, int newBufferSize)
 {
-    this->sampleRate = sampleRate;
-    this->bufferSize = bufferSize;
+    this->sampleRate = newSampleRate;
+    this->bufferSize = newBufferSize;
     
     // Use power of 2 FFT size for efficiency
     fftSize = 1;
@@ -24,7 +29,7 @@ void FFTPitchDetector::prepare(double sampleRate, int bufferSize)
     // Create Hann window
     for (int i = 0; i < fftSize; ++i)
     {
-        windowBuffer[i] = 0.5f - 0.5f * std::cos(2.0f * M_PI * i / (fftSize - 1));
+        windowBuffer[i] = 0.5f - 0.5f * std::cos(2.0f * static_cast<float>(M_PI) * i / (fftSize - 1));
     }
     
     // Clear buffers
@@ -47,9 +52,8 @@ float FFTPitchDetector::detectPitch(const juce::AudioBuffer<float>& buffer)
         fftBuffer[i * 2 + 1] = 0.0f;                    // Imaginary part
     }
     
-    // Perform FFT using JUCE's FFT
-    juce::dsp::FFT fft(std::log2(fftSize));
-    fft.performFrequencyOnlyForwardTransform(fftBuffer.data());
+    // Simple FFT implementation (avoiding JUCE's FFT for threading issues)
+    performFFT(fftBuffer.data(), fftSize);
     
     // Calculate magnitude spectrum
     for (int i = 0; i < fftSize / 2; ++i)
@@ -87,6 +91,56 @@ float FFTPitchDetector::detectPitch(const juce::AudioBuffer<float>& buffer)
     confidence = (maxMagnitude > 0.0f) ? peakMagnitude / maxMagnitude : 0.0f;
     
     return frequency;
+}
+
+void FFTPitchDetector::performFFT(float* buffer, int size)
+{
+    // Simple FFT implementation using Cooley-Tukey algorithm
+    // This avoids any threading issues with JUCE's FFT
+    
+    // Bit-reversal permutation
+    int j = 0;
+    for (int i = 0; i < size - 1; ++i)
+    {
+        if (i < j)
+        {
+            std::swap(buffer[i * 2], buffer[j * 2]);
+            std::swap(buffer[i * 2 + 1], buffer[j * 2 + 1]);
+        }
+        
+        int k = size >> 1;
+        while (k <= j)
+        {
+            j -= k;
+            k >>= 1;
+        }
+        j += k;
+    }
+    
+    // FFT computation
+    for (int step = 1; step < size; step <<= 1)
+    {
+        float omega = -static_cast<float>(M_PI) / step;
+        
+        for (int group = 0; group < size; group += step << 1)
+        {
+            for (int pair = group; pair < group + step; ++pair)
+            {
+                int match = pair + step;
+                float cos_val = std::cos(omega * (pair - group));
+                float sin_val = std::sin(omega * (pair - group));
+                
+                float real_temp = buffer[match * 2] * cos_val - buffer[match * 2 + 1] * sin_val;
+                float imag_temp = buffer[match * 2] * sin_val + buffer[match * 2 + 1] * cos_val;
+                
+                buffer[match * 2] = buffer[pair * 2] - real_temp;
+                buffer[match * 2 + 1] = buffer[pair * 2 + 1] - imag_temp;
+                
+                buffer[pair * 2] += real_temp;
+                buffer[pair * 2 + 1] += imag_temp;
+            }
+        }
+    }
 }
 
 void FFTPitchDetector::applyWindow(float* buffer, int size)
@@ -146,12 +200,12 @@ float FFTPitchDetector::parabolicInterpolation(int index) const
 
 float FFTPitchDetector::frequencyToBin(float frequency) const
 {
-    return frequency * fftSize / sampleRate;
+    return static_cast<float>(frequency * fftSize / sampleRate);
 }
 
-float FFTPitchDetector::binToFrequency(int bin) const
+float FFTPitchDetector::binToFrequency(float bin) const
 {
-    return static_cast<float>(bin) * sampleRate / fftSize;
+    return static_cast<float>(bin * sampleRate / fftSize);
 }
 
 float FFTPitchDetector::getConfidence() const

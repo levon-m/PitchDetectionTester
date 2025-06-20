@@ -1,10 +1,11 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_gui_basics/juce_gui_basics.h>
 #include "PluginProcessor.h"
 #include "UI/StatisticsDisplay.h"
 
-class PitchDetectionTesterAudioProcessorEditor : public juce::AudioProcessorEditor
+class PitchDetectionTesterAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::ComboBox::Listener
 {
 public:
     PitchDetectionTesterAudioProcessorEditor(PitchDetectionTesterAudioProcessor&);
@@ -12,6 +13,9 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    
+    // ComboBox::Listener implementation
+    void comboBoxChanged(juce::ComboBox*) override;
 
 private:
     PitchDetectionTesterAudioProcessor& audioProcessor;

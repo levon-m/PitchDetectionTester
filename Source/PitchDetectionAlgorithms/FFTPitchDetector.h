@@ -27,9 +27,10 @@ private:
     static constexpr float MAX_FREQUENCY = 400.0f;  // Hz (bass guitar range)
     static constexpr float MIN_MAGNITUDE_THRESHOLD = 0.01f;
     
+    void performFFT(float* buffer, int size);
     void applyWindow(float* buffer, int size);
     int findPeakFrequency() const;
     float parabolicInterpolation(int index) const;
     float frequencyToBin(float frequency) const;
-    float binToFrequency(int bin) const;
+    float binToFrequency(float bin) const;
 }; 

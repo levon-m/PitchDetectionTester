@@ -1,6 +1,6 @@
 #pragma once
 
-#include <JuceHeader.h>
+#include <juce_audio_processors/juce_audio_processors.h>
 #include "PitchDetectionAlgorithms/PitchDetector.h"
 #include "PitchDetectionAlgorithms/YinPitchDetector.h"
 #include "PitchDetectionAlgorithms/FFTPitchDetector.h"
